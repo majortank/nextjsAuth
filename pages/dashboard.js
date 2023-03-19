@@ -1,6 +1,11 @@
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
+import 'firebase/compat/firestore';
+
+const firestore = firebase.firestore();
 
 export default function Dashboard() {
   const { currentUser, logout } = useAuth();
@@ -17,7 +22,7 @@ export default function Dashboard() {
     const getUserRole = async () => {
       if (currentUser) {
         const userDoc = await firestore
-          .collection('users')
+          .collection('roles')
           .doc(currentUser.uid)
           .get();
         setRole(userDoc.data().role);
