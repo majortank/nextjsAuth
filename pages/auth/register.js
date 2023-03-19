@@ -1,6 +1,6 @@
+import { useAuth } from '../../contexts/AuthContext';
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
-import { useAuth } from '../contexts/AuthContext';
 
 export default function Register() {
   const [email, setEmail] = useState('');
@@ -8,9 +8,16 @@ export default function Register() {
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const { signup } = useAuth();
+  const [role, setRole] = useState('patient');
+  const { signUp, loginWithGoogle } = useAuth();
   const router = useRouter();
+  const handleLoginWithGoogle = async () => {
+    try {
+      await loginWithGoogle(role);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -23,7 +30,7 @@ export default function Register() {
     try {
       setError('');
       setLoading(true);
-      await signup(email, password);
+      await signUp(email, password);
       router.push('/dashboard');
     } catch (error) {
       setError('Failed to create an account');
@@ -64,10 +71,49 @@ export default function Register() {
           onChange={(e) => setPasswordConfirm(e.target.value)}
         />
 
+        <div>
+          <input
+            type="radio"
+            id="patient"
+            name="role"
+            value="patient"
+            checked={role === 'patient'}
+            onChange={(e) => setRole(e.target.value)}
+          />
+          <label htmlFor="patient">Patient</label>
+        </div>
+
+        <div>
+          <input
+            type="radio"
+            id="therapist"
+            name="role"
+            value="therapist"
+            checked={role === 'therapist'}
+            onChange={(e) => setRole(e.target.value)}
+          />
+          <label htmlFor="therapist">Therapist</label>
+        </div>
+
+        <div>
+          <input
+            type="radio"
+            id="admin"
+            name="role"
+            value="admin"
+            checked={role === 'admin'}
+            onChange={(e) => setRole(e.target.value)}
+          />
+          <label htmlFor="admin">Admin</label>
+        </div>
+
         <button type="submit" disabled={loading}>
           Register
         </button>
       </form>
+      <div>
+        <button onClick={handleLoginWithGoogle}>Register with Google</button>
+      </div>
     </div>
   );
 }

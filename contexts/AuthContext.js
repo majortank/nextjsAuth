@@ -1,25 +1,3 @@
-import React, { useState, useEffect, useContext, createContext } from 'react';
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/auth';
-import 'firebase/compat/firestore';
-import { useRouter } from 'next/router';
-
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: 'AIzaSyBUBNaoFAOwg6aDSxUt-oBbwQpjdPMCIfw',
-  authDomain: 'newsmanagementportal.firebaseapp.com',
-  projectId: 'newsmanagementportal',
-  storageBucket: 'newsmanagementportal.appspot.com',
-  messagingSenderId: '1045348417119',
-  appId: '1:1045348417119:web:662932e22f530346fc25ea',
-  measurementId: 'G-7S4JKVJGR8',
-};
-
-// Initialize Firebase app
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-
 // Create auth context
 const AuthContext = createContext();
 
@@ -32,16 +10,31 @@ export function AuthProvider({ children }) {
   // Firebase auth state change listener
   useEffect(() => {
     const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
-      setCurrentUser(user);
+      if (user) {
+        const { email, uid } = user;
+        const roleRef = firebase.firestore().collection('roles').doc(uid);
+
+        roleRef.get().then((doc) => {
+          const data = doc.data();
+          setCurrentUser({ email, uid, role: data?.role });
+        });
+      } else {
+        setCurrentUser(null);
+      }
       setLoading(false);
     });
     return unsubscribe;
   }, []);
 
   // Firebase sign up function
-  const signUp = async (email, password) => {
+  const signUp = async (email, password, role) => {
     try {
-      await firebase.auth().createUserWithEmailAndPassword(email, password);
+      const userCredential = await firebase
+        .auth()
+        .createUserWithEmailAndPassword(email, password);
+      const { user } = userCredential;
+      const roleRef = firebase.firestore().collection('roles').doc(user.uid);
+      await roleRef.set({ role });
       router.push('/dashboard');
     } catch (error) {
       console.error(error);
@@ -63,7 +56,13 @@ export function AuthProvider({ children }) {
   const loginWithGoogle = async () => {
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
-      await firebase.auth().signInWithPopup(provider);
+      const userCredential = await firebase.auth().signInWithPopup(provider);
+      const { user } = userCredential;
+      const roleRef = firebase.firestore().collection('roles').doc(user.uid);
+      const doc = await roleRef.get();
+      if (!doc.exists) {
+        await roleRef.set({ role: 'patient' });
+      }
       console.log('Logged in with Google');
       router.push('/dashboard');
     } catch (error) {
